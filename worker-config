@@ -2,7 +2,9 @@ Create a new S3 bucket in North Virginia. Name this bucket as xy-mycsvfiles-sqs-
 Create a new S3 bucket in North Virginia. Name this bucket as xy-myjsonfiles-sqs-lab, where xy are your initials. 
 Create the SQS queue (standard) named s3-puts with default options
 Edit the SQS permissions > edit policy permissions (advanced)
-Copy paste the below permission policy and change the bucket name to the mycsvfiles bucket
+Copy paste the below permission policy
+Change the ARN of the SQS queue
+change the bucket name to your xy-mycsvfiles-sqs-lab bucket
 
 	
 {
@@ -18,7 +20,7 @@ Copy paste the below permission policy and change the bucket name to the mycsvfi
    "Action": [
     "SQS:SendMessage"
    ],
-   "Resource": "SQS-ARN",
+   "Resource": "SQS queue ARN",
    "Condition": {
       "ArnLike": { "aws:SourceArn": "arn:aws:s3:*:*:bucket-name" }
    }
@@ -26,13 +28,15 @@ Copy paste the below permission policy and change the bucket name to the mycsvfi
  ]
 }
 
-Next, navigate to the S3 bucket. Edit the properties > events > notifications on the bucket to send all PUT messages to s3-puts queue
+Next, navigate to the xy-mycsvfiles-sqs-lab S3 bucket. Edit the properties > events > notifications on the bucket to send all PUT messages to s3-puts queue
 Create an IAM role > select EC2 as the service use-case > Attach direct policies > select Adminstrator Access policy 
 Save the role as ec2sqslabfulladmin
 Launch an EC2 instance with Amazon Linux 1 AMI in North Virginia (Amazon Linux AMI 2018.03.0 (HVM), SSD Volume Type - ami-0ff8a91507f77f867) 
 Ensure that an IAM role ec2sqslabfulladmin is attached during launch
-SSH into the EC2 instance and execute the below commands. 
+SSH into the EC2 instance and execute the below commands.
 It installs the required packages to run the SQS worker along with a worker application and the supporting code
+
+****PLEASE NOTE THE CHANGES REQUIRED IN THE TWO "sed" COMMANDS****
 
 sudo su 
 yum install jq -y
@@ -44,8 +48,8 @@ mkdir -p worker
 cd worker
 npm install d3-dsv
 wget https://s3.amazonaws.com/labs.thecloudgarage.com/SQS/variation-s3-download-upload/s3-down-up.sh
-sed -i -- 's/ABCDEFGHIJKL/335343756556/g' /home/ec2-user/worker/s3-down-up.sh
-sed -i -- 's/xy/anh/g' /home/ec2-user/worker/s3-down-up.sh
+sed -i -- 's/ABCDEFGHIJKL/replacewithyouraccountid/g' /home/ec2-user/worker/s3-down-up.sh
+sed -i -- 's/xy/replacewithyourfirstlastinitialsusedinthebucket/g' /home/ec2-user/worker/s3-down-up.sh
 tr -d '\r' <s3-down-up.sh >s3-down-up-new.sh
 rm -rf s3-down-up.sh
 sudo mv s3-down-up-new.sh s3-down-up.sh
@@ -60,9 +64,13 @@ output: json
 
 Create an AMI of this instance and name/description/name-tag: sqs-s3-puts-worker
 
-Download the zip file on to your laptop and unzip the same. There are sample csv files 
+Download the zip file on to your laptop and unzip the same. 
 
-Upload these files to the S3 bucket name xy-mycsvfiles-sqs-lab
+https://s3.amazonaws.com/labs.thecloudgarage.com/SQS/variation-s3-download-upload/csv.zip
+
+There are about 50 csv sample files in the unzipped folder
+
+Upload these csv files directly to the S3 bucket name xy-mycsvfiles-sqs-lab
 
 Launch 2 more instances in us-east-1 public subnet from this AMI
 
