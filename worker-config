@@ -1,0 +1,75 @@
+Create a new S3 bucket in North Virginia. Name this bucket as xy-mycsvfiles-sqs-lab, where xy are your initials. 
+Create a new S3 bucket in North Virginia. Name this bucket as xy-myjsonfiles-sqs-lab, where xy are your initials. 
+Create the SQS queue (standard) named s3-puts with default options
+Edit the SQS permissions > edit policy permissions (advanced)
+Copy paste the below permission policy and change the bucket name to the mycsvfiles bucket
+
+	
+{
+ "Version": "2008-10-17",
+ "Id": "example-ID",
+ "Statement": [
+  {
+   "Sid": "example-statement-ID",
+   "Effect": "Allow",
+   "Principal": {
+     "AWS": "*"  
+   },
+   "Action": [
+    "SQS:SendMessage"
+   ],
+   "Resource": "SQS-ARN",
+   "Condition": {
+      "ArnLike": { "aws:SourceArn": "arn:aws:s3:*:*:bucket-name" }
+   }
+  }
+ ]
+}
+
+Next, navigate to the S3 bucket. Edit the properties > events > notifications on the bucket to send all PUT messages to s3-puts queue
+Create an IAM role > select EC2 as the service use-case > Attach direct policies > select Adminstrator Access policy 
+Save the role as ec2sqslabfulladmin
+Launch an EC2 instance with Amazon Linux 1 AMI in North Virginia (Amazon Linux AMI 2018.03.0 (HVM), SSD Volume Type - ami-0ff8a91507f77f867) 
+Ensure that an IAM role ec2sqslabfulladmin is attached during launch
+SSH into the EC2 instance and execute the below commands. 
+It installs the required packages to run the SQS worker along with a worker application and the supporting code
+
+sudo su 
+yum install jq -y
+cd /home/ec2-user/
+curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.32.0/install.sh | bash
+. ~/.nvm/nvm.sh
+nvm install 4.4.5
+mkdir -p worker
+cd worker
+npm install d3-dsv
+wget https://s3.amazonaws.com/labs.thecloudgarage.com/SQS/variation-s3-download-upload/s3-down-up.sh
+sed -i -- 's/ABCDEFGHIJKL/335343756556/g' /home/ec2-user/worker/s3-down-up.sh
+sed -i -- 's/xy/anh/g' /home/ec2-user/worker/s3-down-up.sh
+tr -d '\r' <s3-down-up.sh >s3-down-up-new.sh
+rm -rf s3-down-up.sh
+sudo mv s3-down-up-new.sh s3-down-up.sh
+chmod +x s3-down-up.sh
+
+Execute the below commands on EC2 to set the region for the AWS user profile
+
+aws configure
+leave the access key and secret access key blank
+region: us-east-1 
+output: json
+
+Create an AMI of this instance and name/description/name-tag: sqs-s3-puts-worker
+
+Download the zip file on to your laptop and unzip the same. There are sample csv files 
+
+Upload these files to the S3 bucket name xy-mycsvfiles-sqs-lab
+
+Launch 2 more instances in us-east-1 public subnet from this AMI
+
+SSH to all three instances and run the below commands in parallel on all three instances
+
+sudo su
+cd worker
+./s3-down-up.sh
+
+
